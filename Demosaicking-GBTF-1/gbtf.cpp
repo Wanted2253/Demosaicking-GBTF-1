@@ -16,11 +16,11 @@ void bayer_split(cv::Mat& Bayer, cv::Mat& Dst) {
 
 	for (int row = 0; row < Bayer.rows; row++) {
 		for (int col = 0; col < Bayer.cols; col++) {
-			if (row % 2 == 0) { // opencv: BGR
-				channelNum = (col % 2 == 0) ? 2 : 1;//even rows -- even cols:R=channel:2; odd cols:G=channel:1 
+			if (row % 2 == 0) { 
+				channelNum = (col % 2 == 0) ? 2 : 1;
 			}
 			else {
-				channelNum = (col % 2 == 0) ? 1 : 0;// odd rowd -- even cols:G=channel:1; odd cols:B=channel:0
+				channelNum = (col % 2 == 0) ? 1 : 0;
 			}
 			Dst.at<Vec3b>(row, col).val[channelNum] = Bayer.at<uchar>(row, col);
 		}
@@ -29,12 +29,12 @@ void bayer_split(cv::Mat& Bayer, cv::Mat& Dst) {
 }
 void demosaic_gbtf(cv::Mat& Bayer, cv::Mat& Dst) {
 	cv::Mat Src = Bayer.clone();
-	if (Bayer.channels() == 1) { //input 1 channel -> 3 channel Bayer
+	if (Bayer.channels() == 1) {
 		bayer_split(Bayer, Src);
 	}
 
-	// split channel to BGR 
-	Src.convertTo(Src, CV_32F, 1.0 / 255.0); //to float
+
+	Src.convertTo(Src, CV_32F, 1.0 / 255.0); 
 	vector<Mat> bgr(3);
 	vector<Mat> finalBGR(3);
 	split(Src, bgr);
@@ -105,23 +105,22 @@ void demosaic_gbtf(cv::Mat& Bayer, cv::Mat& Dst) {
 	}
 
 	// Final difference estimation for the target pixel
-	copyMakeBorder(V_Diff, V_Diff, 4, 4, 4, 4, cv::BORDER_DEFAULT); // now V_Diff need shift row and col by 4
+	copyMakeBorder(V_Diff, V_Diff, 4, 4, 4, 4, cv::BORDER_DEFAULT);
 	copyMakeBorder(H_Diff, H_Diff, 4, 4, 4, 4, cv::BORDER_DEFAULT);
 	Mat gr_Diff(Src.size(), CV_32F, cv::Scalar(0));
 	Mat gb_Diff(Src.size(), CV_32F, cv::Scalar(0));
-	// use gradients of color differences to come up with weights for each direction.
 	Mat V_diff_gradient;
 	Mat H_diff_gradient;
-	float VHkernel[3] = { -1,0,1 }; //(central difference form)
+	float VHkernel[3] = { -1,0,1 };
 	cv::Mat HK(1, 3, CV_32F, VHkernel);
 	cv::Mat VK(3, 1, CV_32F, VHkernel);
 	cv::filter2D(V_Diff, V_diff_gradient, -1, VK);
 	cv::filter2D(H_Diff, H_diff_gradient, -1, HK);
-	V_diff_gradient = cv::abs(V_diff_gradient); // V_diff_gradient need shift row and col by 4
+	V_diff_gradient = cv::abs(V_diff_gradient); 
 	H_diff_gradient = cv::abs(H_diff_gradient);
 
-	float Weight[4]; //four direction, N, S, W, E
-	int startPoint[4][2] = { {-4, -2}, {0, -2}, {-2, -4}, {-2, 0} }; //weight startpoint
+	float Weight[4];
+	int startPoint[4][2] = { {-4, -2}, {0, -2}, {-2, -4}, {-2, 0} };
 	float W_total;
 	int a, b;
 	for (int row = 0; row < Src.rows; row++) {
@@ -130,9 +129,9 @@ void demosaic_gbtf(cv::Mat& Bayer, cv::Mat& Dst) {
 			col = 1;
 		}
 		for (; col < Src.cols; col += 2) {
-			// calculate Weight
+
 			Weight[0] = Weight[1] = Weight[2] = Weight[3] = W_total = 0.0;
-			for (int dir = 0; dir < 4; dir++) {// N, S, W, E
+			for (int dir = 0; dir < 4; dir++) {
 				a = startPoint[dir][0];
 				b = startPoint[dir][1];
 				for (int i = 0; i < 5; i++) {
@@ -198,7 +197,7 @@ void demosaic_gbtf(cv::Mat& Bayer, cv::Mat& Dst) {
 		if (row % 2 == 1) {
 			col = 1;
 		}
-		//https://stackoverflow.com/questions/21874774/sum-of-elements-in-a-matrix-in-opencv
+
 		for (; col < Bayer.cols; col += 2) {
 			if (row % 2 == 0) { //Red
 				//Blue @ Red
